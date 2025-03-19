@@ -1,4 +1,3 @@
-use tao::dpi::{PhysicalPosition, Position};
 use tao::event::Event;
 use tao::event::WindowEvent;
 use tao::event_loop::ControlFlow;
@@ -74,18 +73,4 @@ fn main() {
             _ => (),
         }
     });
-}
-
-fn to_physical_checked(window: &tao::window::Window, x: f64, y: f64) -> (i32, i32) {
-    let scale = window.scale_factor();
-    let monitor = window.current_monitor().unwrap();
-    let max_x = monitor.size().width as f64 / scale;
-    let max_y = monitor.size().height as f64 / scale;
-    // 边界锁定算法
-    let x_clamped = x.clamp(0.0, max_x - 100.0); // 保留100px余量
-    let y_clamped = y.clamp(0.0, max_y - 100.0);
-    (
-        (x_clamped * scale).floor() as i32,
-        (y_clamped * scale).floor() as i32,
-    )
 }
