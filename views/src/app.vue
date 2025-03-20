@@ -4,6 +4,8 @@ import {onMounted} from "vue";
 const DRAG_REGION_ATTR = 'data-drag-region'
 
 onMounted(() => {
+  window['ipc'].postMessage('show-window')
+
   document.addEventListener('mousedown', (e) => {
     if (e.target.hasAttribute(DRAG_REGION_ATTR)) {
       e.preventDefault()

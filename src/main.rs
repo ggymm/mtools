@@ -1,17 +1,42 @@
+use serde::Deserialize;
+use std::str::FromStr;
 use tao::event::Event;
 use tao::event::WindowEvent;
 use tao::event_loop::ControlFlow;
 use tao::event_loop::EventLoopBuilder;
 use tao::window::WindowBuilder;
-
 use wry::WebViewBuilder;
 
 #[derive(Clone, Debug)]
 enum AppEvent {
-    DragWindow(),
+    ShowWindow(), // show-window
+    DragWindow(), // drag-window
+}
+
+impl FromStr for AppEvent {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match serde_json::from_str::<AppEventBody>(s) {
+            Ok(body) => match body.event.as_str() {
+                "show-window" => Ok(AppEvent::ShowWindow()),
+                "drag-window" => Ok(AppEvent::DragWindow()),
+                _ => Err(()),
+            },
+            Err(_) => Err(()),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct AppEventBody {
+    event: String,
+    message: Option<String>,
 }
 
 fn main() {
+    let url = "http://localhost:5173";
+
     let event_loop = EventLoopBuilder::<AppEvent>::with_user_event().build();
     let event_loop_proxy = event_loop.create_proxy();
 
@@ -19,35 +44,40 @@ fn main() {
     let window = WindowBuilder::new()
         .with_inner_size(tao::dpi::LogicalSize::new(800.0, 60.0))
         .with_min_inner_size(tao::dpi::LogicalSize::new(800.0, 60.0))
+        .with_visible(false)
         .with_decorations(false)
         .build(&event_loop)
         .expect("Failed to create window.");
 
     // webview
-    let _webview = WebViewBuilder::new()
-        .with_url("http://localhost:5173")
+    let webview = WebViewBuilder::new()
         .with_ipc_handler(move |msg| {
-            // 打印
-            println!("{:?}", msg);
-            match event_loop_proxy.send_event(AppEvent::DragWindow()) {
-                Ok(_) => {
-                    println!("发送成功");
-                }
-                Err(_) => {
-                    println!("发送失败");
-                }
+            println!("ipc msg: {}", msg.body());
+
+            // 解析 ipc msg
+            // 交给 event loop 进行处理
+            match AppEvent::from_str(msg.body()) {
+                Ok(event) => event_loop_proxy.send_event(event).unwrap(),
+                Err(_) => {}
             }
         })
         .build(&window)
         .expect("Failed to create webview.");
 
-    // window.set_visible(true);
+    // 加载页面
+    window.set_visible(true);
+    webview.load_url(url).unwrap_or_else(|err| {
+        panic!("Failed to load url {}: {}", url, err);
+    });
 
+    // 启动事件循环
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
+        println!("event: {:?}", event);
+
         match event {
-            // 处理系统窗口事件
+            // 处理窗口事件
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 window_id,
@@ -56,19 +86,15 @@ fn main() {
                 *control_flow = ControlFlow::ExitWithCode(0);
             }
 
-            // 处理自定义IPC事件
-            Event::UserEvent(AppEvent::DragWindow()) => {
-                // println!("移动窗口到({}, {})", x, y);
-                // let (phy_x, phy_y) = to_physical_checked(&window, x, y);
-                match window.drag_window() {
-                    Ok(_) => {
-                        println!("移动窗口成功");
-                    }
-                    Err(_) => {
-                        println!("移动窗口失败");
-                    }
+            // 处理自定义事件
+            Event::UserEvent(event) => match event {
+                AppEvent::ShowWindow() => {
+                    window.set_visible(true);
                 }
-            }
+                AppEvent::DragWindow() => {
+                    window.drag_window().unwrap();
+                }
+            },
             // 其它事件
             _ => (),
         }
