@@ -1,11 +1,11 @@
 import { createApp } from 'vue'
 
-import App from './app.vue'
+import Main from './main.vue'
 
 const setup = () => {
-    const app = createApp(App)
+  const app = createApp(Main)
 
-    // 挂载页面
-    app.mount('#app')
+  // 挂载页面
+  app.mount('#app')
 }
 setup()
