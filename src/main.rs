@@ -9,7 +9,6 @@ use wry::WebViewBuilder;
 
 #[derive(Clone, Debug)]
 enum AppEvent {
-    ShowWindow(), // show-window
     DragWindow(), // drag-window
 }
 
@@ -19,7 +18,6 @@ impl FromStr for AppEvent {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match serde_json::from_str::<AppEventBody>(s) {
             Ok(body) => match body.event.as_str() {
-                "show-window" => Ok(AppEvent::ShowWindow()),
                 "drag-window" => Ok(AppEvent::DragWindow()),
                 _ => Err(()),
             },
@@ -52,7 +50,7 @@ fn main() {
     // webview
     let webview = WebViewBuilder::new()
         .with_ipc_handler(move |msg| {
-            println!("ipc msg: {}", msg.body());
+            println!("{:?}", msg);
 
             // 解析 ipc msg
             // 交给 event loop 进行处理
@@ -74,8 +72,6 @@ fn main() {
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
-        println!("event: {:?}", event);
-
         match event {
             // 处理窗口事件
             Event::WindowEvent {
@@ -88,9 +84,6 @@ fn main() {
 
             // 处理自定义事件
             Event::UserEvent(event) => match event {
-                AppEvent::ShowWindow() => {
-                    window.set_visible(true);
-                }
                 AppEvent::DragWindow() => {
                     window.drag_window().unwrap();
                 }
