@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, onMounted } from 'vue'
+import { onMounted } from 'vue'
 
 import { $ } from './dom.js'
 import { dragWindow } from './ipc.js'
@@ -20,7 +20,7 @@ onMounted(() => {
 <template>
   <div class="main">
     <div class="search-wrapper">
-      <input id="search" class="search" type="text" placeholder="" />
+      <input id="search" class="search" type="text" placeholder="Hi MTools" />
     </div>
     <div class="setting-wrapper">
       <div id="setting" class="setting">
